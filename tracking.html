@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Vehicle Tracker</title>
+    <title>Vehicle Tracker with Route</title>
     <style>
       body {
         font-family: sans-serif;
         margin: 20px;
       }
       #map {
-        height: 400px;
+        height: 500px;
         width: 100%;
         margin-top: 10px;
       }
@@ -24,12 +24,25 @@
 
     <script>
       let map, marker, watchId;
+      let routePath; // เส้นทาง
+      let routeCoords = []; // Array สำหรับเก็บพิกัด
 
       function initMap() {
         map = new google.maps.Map(document.getElementById("map"), {
-          center: { lat: 13.736717, lng: 100.523186 }, // Bangkok default
-          zoom: 14,
+          center: { lat: 13.736717, lng: 100.523186 },
+          zoom: 15,
         });
+
+        // สร้างเส้นทางเริ่มต้น
+        routePath = new google.maps.Polyline({
+          path: routeCoords,
+          geodesic: true,
+          strokeColor: "#2196F3", // สีฟ้า
+          strokeOpacity: 1.0,
+          strokeWeight: 4,
+        });
+
+        routePath.setMap(map);
       }
 
       function startTracking() {
@@ -37,18 +50,18 @@
         const status = document.getElementById("status");
 
         if (!vehicleID) {
-          status.textContent = "❗ Please enter a vehicle ID.";
+          status.textContent = "❗ กรุณากรอก Vehicle ID ก่อนเริ่มใช้งาน";
           return;
         }
 
         if (!navigator.geolocation) {
-          status.textContent = "❌ Geolocation not supported.";
+          status.textContent = "❌ เบราว์เซอร์นี้ไม่รองรับ Geolocation";
           return;
         }
 
-        status.textContent = `📡 Tracking started for "${vehicleID}"...`;
+        status.textContent = `📡 เริ่มติดตาม "${vehicleID}" แล้ว...`;
 
-        // Load first location of the day
+        // โหลดตำแหน่งเริ่มต้นของวัน
         fetch(`https://script.google.com/macros/s/AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA/exec?vehicle=${vehicleID}&first=1`)
           .then((res) => res.json())
           .then((data) => {
@@ -60,37 +73,41 @@
                 label: "Start",
               });
               map.setCenter(startPos);
+              routeCoords.push(startPos);
+              routePath.setPath(routeCoords);
             }
           });
 
-        // Start watching live position
+        // เริ่มติดตามแบบ Real-time
         watchId = navigator.geolocation.watchPosition(
           (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
             const pos = { lat, lng };
 
-            // Update marker
             if (!marker) {
               marker = new google.maps.Marker({
                 position: pos,
                 map: map,
-                title: "You",
+                title: "Current Position",
               });
             } else {
               marker.setPosition(pos);
             }
 
+            // เพิ่มพิกัดในเส้นทาง
+            routeCoords.push(pos);
+            routePath.setPath(routeCoords);
             map.setCenter(pos);
 
-            // Send to server
+            // ส่งข้อมูลไปยัง Apps Script
             const url = `https://script.google.com/macros/s/AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA/exec?vehicle=${vehicleID}&lat=${lat}&lng=${lng}`;
             fetch(url).then(() => {
-              console.log(`📍 Sent to server: ${lat}, ${lng}`);
+              console.log(`📍 ส่งตำแหน่ง: ${lat}, ${lng}`);
             });
           },
           (error) => {
-            status.textContent = "❌ Error: " + error.message;
+            status.textContent = "❌ เกิดข้อผิดพลาด: " + error.message;
           },
           {
             enableHighAccuracy: true,
@@ -101,7 +118,7 @@
       }
     </script>
 
-    <!-- ✅ เปลี่ยน YOUR_API_KEY เป็น API Key ของ Google Maps -->
+    <!-- 🔑 ใช้ API Key จริงของคุณที่เปิด Maps JavaScript API -->
     <script async defer
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBw5pZ4H0EdM_Ru4ffFvdukIurUMtdS2nc&callback=initMap">
     </script>
