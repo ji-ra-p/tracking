@@ -1,126 +1,139 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Vehicle Tracker with Route</title>
-    <style>
-      body {
-        font-family: sans-serif;
-        margin: 20px;
+<head>
+  <title>Vehicle Tracker</title>
+  <style>
+    #map { height: 500px; width: 100%; margin-top: 10px; }
+    body { font-family: sans-serif; margin: 20px; }
+  </style>
+</head>
+<body>
+  <h2>🚘 Vehicle Tracker</h2>
+  <label for="vehicleID">Vehicle ID:</label>
+  <input type="text" id="vehicleID" placeholder="e.g. car001">
+  <button onclick="startTracking()">Start Tracking</button>
+  <button onclick="stopTracking()">Stop Tracking</button>
+  <p id="status">กรอก Vehicle ID แล้วกด Start</p>
+  <p id="distance"></p>
+  <div id="map"></div>
+
+  <script>
+    let map, marker, watchId;
+    let routePath;
+    let routeCoords = [];
+    let totalDistance = 0;
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 13.736717, lng: 100.523186 },
+        zoom: 15
+      });
+
+      routePath = new google.maps.Polyline({
+        path: routeCoords,
+        geodesic: true,
+        strokeColor: "#2196F3",
+        strokeOpacity: 1.0,
+        strokeWeight: 4,
+      });
+
+      routePath.setMap(map);
+    }
+
+    function startTracking() {
+      const vehicleID = document.getElementById("vehicleID").value.trim();
+      const status = document.getElementById("status");
+      const distanceDisplay = document.getElementById("distance");
+      if (!vehicleID) {
+        status.textContent = "❗ กรุณากรอก Vehicle ID";
+        return;
       }
-      #map {
-        height: 500px;
-        width: 100%;
-        margin-top: 10px;
-      }
-    </style>
-  </head>
-  <body>
-    <h2>🚗 Vehicle Tracker</h2>
-    <label for="vehicleID">Vehicle ID:</label>
-    <input type="text" id="vehicleID" placeholder="e.g. car123" />
-    <button onclick="startTracking()">Start Tracking</button>
-    <p id="status"></p>
-    <div id="map"></div>
 
-    <script>
-      let map, marker, watchId;
-      let routePath; // เส้นทาง
-      let routeCoords = []; // Array สำหรับเก็บพิกัด
+      status.textContent = "🚀 เริ่มติดตาม...";
+      totalDistance = 0;
+      routeCoords = [];
+      routePath.setPath(routeCoords);
+      distanceDisplay.textContent = "";
 
-      function initMap() {
-        map = new google.maps.Map(document.getElementById("map"), {
-          center: { lat: 13.736717, lng: 100.523186 },
-          zoom: 15,
-        });
-
-        // สร้างเส้นทางเริ่มต้น
-        routePath = new google.maps.Polyline({
-          path: routeCoords,
-          geodesic: true,
-          strokeColor: "#2196F3", // สีฟ้า
-          strokeOpacity: 1.0,
-          strokeWeight: 4,
-        });
-
-        routePath.setMap(map);
-      }
-
-      function startTracking() {
-        const vehicleID = document.getElementById("vehicleID").value.trim();
-        const status = document.getElementById("status");
-
-        if (!vehicleID) {
-          status.textContent = "❗ กรุณากรอก Vehicle ID ก่อนเริ่มใช้งาน";
-          return;
-        }
-
-        if (!navigator.geolocation) {
-          status.textContent = "❌ เบราว์เซอร์นี้ไม่รองรับ Geolocation";
-          return;
-        }
-
-        status.textContent = `📡 เริ่มติดตาม "${vehicleID}" แล้ว...`;
-
-        // โหลดตำแหน่งเริ่มต้นของวัน
-        fetch(`https://script.google.com/macros/s/AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA/exec?vehicle=${vehicleID}&first=1`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (data && data.lat && data.lng) {
-              const startPos = { lat: parseFloat(data.lat), lng: parseFloat(data.lng) };
-              new google.maps.Marker({
-                position: startPos,
-                map: map,
-                label: "Start",
-              });
-              map.setCenter(startPos);
-              routeCoords.push(startPos);
-              routePath.setPath(routeCoords);
-            }
-          });
-
-        // เริ่มติดตามแบบ Real-time
-        watchId = navigator.geolocation.watchPosition(
-          (position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            const pos = { lat, lng };
-
-            if (!marker) {
-              marker = new google.maps.Marker({
-                position: pos,
-                map: map,
-                title: "Current Position",
-              });
-            } else {
-              marker.setPosition(pos);
-            }
-
-            // เพิ่มพิกัดในเส้นทาง
-            routeCoords.push(pos);
+      // โหลดตำแหน่งแรกของวัน
+      fetch(`https://script.google.com/macros/s/AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA/exec?vehicle=${vehicleID}&first=1`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.lat && data.lng) {
+            const start = { lat: parseFloat(data.lat), lng: parseFloat(data.lng) };
+            routeCoords.push(start);
             routePath.setPath(routeCoords);
-            map.setCenter(pos);
-
-            // ส่งข้อมูลไปยัง Apps Script
-            const url = `https://script.google.com/macros/s/AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA/exec?vehicle=${vehicleID}&lat=${lat}&lng=${lng}`;
-            fetch(url).then(() => {
-              console.log(`📍 ส่งตำแหน่ง: ${lat}, ${lng}`);
-            });
-          },
-          (error) => {
-            status.textContent = "❌ เกิดข้อผิดพลาด: " + error.message;
-          },
-          {
-            enableHighAccuracy: true,
-            maximumAge: 10000,
-            timeout: 5000,
+            new google.maps.Marker({ position: start, map, label: "Start" });
+            map.setCenter(start);
           }
-        );
-      }
-    </script>
+        });
 
-    <!-- 🔑 ใช้ API Key จริงของคุณที่เปิด Maps JavaScript API -->
-    <script async defer
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBw5pZ4H0EdM_Ru4ffFvdukIurUMtdS2nc&callback=initMap">
-    </script>
-  </body>
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const newPos = { lat, lng };
+
+          if (!marker) {
+            marker = new google.maps.Marker({ position: newPos, map });
+          } else {
+            marker.setPosition(newPos);
+          }
+
+          if (routeCoords.length > 0) {
+            const prev = routeCoords[routeCoords.length - 1];
+            const dist = computeDistance(prev.lat, prev.lng, lat, lng);
+            totalDistance += dist;
+          }
+
+          routeCoords.push(newPos);
+          routePath.setPath(routeCoords);
+          map.setCenter(newPos);
+
+          distanceDisplay.textContent = `ระยะทางรวม: ${totalDistance.toFixed(2)} กม.`;
+
+          fetch(`https://script.google.com/macros/s/AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA/exec?vehicle=${vehicleID}&lat=${lat}&lng=${lng}`);
+        },
+        (err) => {
+          status.textContent = "❌ ตำแหน่งผิดพลาด: " + err.message;
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 7000 }
+      );
+    }
+
+    function stopTracking() {
+      const status = document.getElementById("status");
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        status.textContent = "⏹️ หยุดติดตามแล้ว";
+
+        const end = routeCoords[routeCoords.length - 1];
+        new google.maps.Marker({
+          position: end,
+          map: map,
+          label: "End",
+          icon: { url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png" }
+        });
+      }
+    }
+
+    // คำนวณระยะทางระหว่างพิกัด 2 จุด (Haversine Formula)
+    function computeDistance(lat1, lng1, lat2, lng2) {
+      function toRad(x) { return x * Math.PI / 180; }
+      const R = 6371; // Radius of Earth in km
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+  </script>
+
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBw5pZ4H0EdM_Ru4ffFvdukIurUMtdS2nc&callback=initMap">
+  </script>
+</body>
 </html>
