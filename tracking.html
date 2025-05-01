@@ -3,31 +3,64 @@
   <head>
     <base target="_top">
     <title>Vehicle Tracker</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+      }
+      input, button {
+        padding: 10px;
+        font-size: 1rem;
+        margin-top: 10px;
+      }
+    </style>
   </head>
   <body>
+    <h2>🚗 Vehicle Tracker</h2>
+    <label for="vehicleID">Enter Vehicle ID:</label><br>
+    <input type="text" id="vehicleID" placeholder="e.g. car123"><br>
+    <button onclick="startTracking()">Start Tracking</button>
+
+    <p id="status"></p>
+
     <script>
-      const vehicleID = 'car123'; // เปลี่ยนเป็นชื่อรถเฉพาะแต่ละคันได้
+      let watchId = null;
 
-      function sendLocation(position) {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        const url = `https://script.google.com/macros/s/AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA/exec?vehicle=${vehicleID}&lat=${lat}&lng=${lng}`;
-        fetch(url).then(r => console.log("📍 Location sent:", lat, lng));
-      }
+      function startTracking() {
+        const vehicleID = document.getElementById("vehicleID").value.trim();
+        const status = document.getElementById("status");
 
-      function handleError(error) {
-        console.error("❌ Location error:", error);
-      }
+        if (!vehicleID) {
+          status.textContent = "❗ Please enter a vehicle ID.";
+          return;
+        }
 
-      // ตรวจจับพิกัดอัตโนมัติ
-      if ("geolocation" in navigator) {
-        navigator.geolocation.watchPosition(sendLocation, handleError, {
-          enableHighAccuracy: true,
-          maximumAge: 10000,
-          timeout: 5000
-        });
-      } else {
-        console.error("Geolocation not supported");
+        if (!navigator.geolocation) {
+          status.textContent = "❌ Geolocation is not supported by this browser.";
+          return;
+        }
+
+        status.textContent = "📡 Tracking started for vehicle: " + vehicleID;
+
+        watchId = navigator.geolocation.watchPosition(
+          position => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            const url = `https://script.google.com/macros/s/AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA/exec?vehicle=${vehicleID}&lat=${lat}&lng=${lng}`;
+            fetch(url).then(() => {
+              console.log(`✅ Sent location for ${vehicleID}: ${lat}, ${lng}`);
+            });
+          },
+          error => {
+            status.textContent = "❌ Error getting location: " + error.message;
+          },
+          {
+            enableHighAccuracy: true,
+            maximumAge: 10000,
+            timeout: 5000
+          }
+        );
       }
     </script>
   </body>
