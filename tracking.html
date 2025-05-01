@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GPS Tracker</title>
+  <script>
+    const vehicleId = prompt("กรุณากรอกรหัสรถ (Vehicle ID)");
+
+    let lastLat = null;
+    let lastLng = null;
+
+    // ฟังก์ชันส่งข้อมูลตำแหน่งไปยัง Google Sheets ผ่าน Web App
+    function sendLocation(lat, lng) {
+      fetch("https://script.google.com/macros/s/AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA/exec", {
+        method: "POST",
+        body: JSON.stringify({
+          vehicleId: vehicleId,
+          latitude: lat,
+          longitude: lng,
+          status: "Moving"
+        }),
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+    }
+
+    // ฟังก์ชันติดตามตำแหน่ง
+    function trackLocation() {
+      if (navigator.geolocation) {
+        // ใช้ watchPosition เพื่อติดตามตำแหน่งอัตโนมัติ
+        navigator.geolocation.watchPosition(position => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+
+          console.log("ตำแหน่ง GPS ที่ได้:", lat, lng); // ตรวจสอบข้อมูล GPS
+
+          // ตรวจจับการเคลื่อนที่ > 10 เมตร
+          const moved = lastLat === null || haversine(lat, lng, lastLat, lastLng) > 0.01;
+          if (moved) {
+            sendLocation(lat, lng);
+            lastLat = lat;
+            lastLng = lng;
+          }
+
+        }, error => {
+          console.log("ข้อผิดพลาดจาก GPS:", error); // แสดงข้อผิดพลาด
+          alert("ไม่สามารถเข้าถึง GPS ได้: " + error.message);
+        }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
+      } else {
+        alert("มือถือไม่รองรับ GPS");
+      }
+    }
+
+    // ฟังก์ชันคำนวณระยะทางโดยใช้ Haversine formula
+    function haversine(lat1, lon1, lat2, lon2) {
+      if (lat2 == null || lon2 == null) return 9999;
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c; // หน่วยเป็น km
+    }
+
+    // เรียกใช้งานฟังก์ชัน trackLocation เมื่อโหลดหน้า
+    window.onload = trackLocation;
+  </script>
+</head>
+<body>
+  <h3>กำลังติดตามรถอัตโนมัติ</h3>
+</body>
+</html>
