@@ -3,14 +3,14 @@
 <head>
   <title>GPS Tracker</title>
   <script>
-    const vehicleId = prompt("��سҡ�͡����ö (Vehicle ID)");
+    const vehicleId = prompt("กรุณากรอกรหัสรถ (Vehicle ID)");
 
     let lastLat = null;
     let lastLng = null;
 
-    // �ѧ��ѹ�觢����ŵ��˹���ѧ Google Sheets ��ҹ Web App
+    // ฟังก์ชันส่งข้อมูลตำแหน่งไปยัง Google Sheets ผ่าน Web App
     function sendLocation(lat, lng) {
-      fetch("https://script.google.com/macros/s/AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA/exec", {
+       fetch("https://script.google.com/macros/s/AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA/exec", {
         method: "POST",
         body: JSON.stringify({
           vehicleId: vehicleId,
@@ -24,17 +24,17 @@
       });
     }
 
-    // �ѧ��ѹ�Դ������˹�
+    // ฟังก์ชันติดตามตำแหน่ง
     function trackLocation() {
       if (navigator.geolocation) {
-        // �� watchPosition ���͵Դ������˹��ѵ��ѵ�
+        // ใช้ watchPosition เพื่อติดตามตำแหน่งอัตโนมัติ
         navigator.geolocation.watchPosition(position => {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
 
-          console.log("���˹� GPS �����:", lat, lng); // ��Ǩ�ͺ������ GPS
+          console.log("ตำแหน่ง GPS ที่ได้:", lat, lng); // ตรวจสอบข้อมูล GPS
 
-          // ��Ǩ�Ѻ�������͹��� > 10 ����
+          // ตรวจจับการเคลื่อนที่ > 10 เมตร
           const moved = lastLat === null || haversine(lat, lng, lastLat, lastLng) > 0.01;
           if (moved) {
             sendLocation(lat, lng);
@@ -43,15 +43,15 @@
           }
 
         }, error => {
-          console.log("��ͼԴ��Ҵ�ҡ GPS:", error); // �ʴ���ͼԴ��Ҵ
-          alert("�������ö��Ҷ֧ GPS ��: " + error.message);
+          console.log("ข้อผิดพลาดจาก GPS:", error); // แสดงข้อผิดพลาด
+          alert("ไม่สามารถเข้าถึง GPS ได้: " + error.message);
         }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
       } else {
-        alert("��Ͷ������ͧ�Ѻ GPS");
+        alert("มือถือไม่รองรับ GPS");
       }
     }
 
-    // �ѧ��ѹ�ӹǳ���зҧ���� Haversine formula
+    // ฟังก์ชันคำนวณระยะทางโดยใช้ Haversine formula
     function haversine(lat1, lon1, lat2, lon2) {
       if (lat2 == null || lon2 == null) return 9999;
       const R = 6371;
@@ -61,14 +61,14 @@
                 Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
                 Math.sin(dLon/2) * Math.sin(dLon/2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c; // ˹����� km
+      return R * c; // หน่วยเป็น km
     }
 
-    // ���¡��ҹ�ѧ��ѹ trackLocation �������Ŵ˹��
+    // เรียกใช้งานฟังก์ชัน trackLocation เมื่อโหลดหน้า
     window.onload = trackLocation;
   </script>
 </head>
 <body>
-  <h3>���ѧ�Դ���ö�ѵ��ѵ�</h3>
+  <h3>กำลังติดตามรถอัตโนมัติ</h3>
 </body>
 </html>
