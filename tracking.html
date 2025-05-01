@@ -48,7 +48,7 @@
         status.textContent = `📡 Tracking started for ${vehicleID}`;
 
         // Load first location of the day
-        fetch(`https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec?vehicle=${vehicleID}&first=1`)
+        fetch(`https://script.google.com/macros/s/AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA/exec?vehicle=${vehicleID}&first=1`)
           .then((res) => res.json())
           .then((data) => {
             if (data && data.lat && data.lng) {
@@ -102,7 +102,7 @@
 
     <!-- ✅ ใส่ API Key จริงตรง YOUR_API_KEY -->
     <script async
-      src="https://maps.googleapis.com/maps/api/js?key=AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA&callback=initMap">
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBw5pZ4H0EdM_Ru4ffFvdukIurUMtdS2nc&callback=initMap">
     </script>
   </body>
 </html>
