@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Vehicle Tracker with Map</title>
+    <title>Vehicle Tracker</title>
     <style>
       body {
         font-family: sans-serif;
-        padding: 10px;
+        margin: 20px;
       }
       #map {
         height: 400px;
@@ -16,7 +16,7 @@
   </head>
   <body>
     <h2>🚗 Vehicle Tracker</h2>
-    <label>Enter Vehicle ID:</label>
+    <label for="vehicleID">Vehicle ID:</label>
     <input type="text" id="vehicleID" placeholder="e.g. car123" />
     <button onclick="startTracking()">Start Tracking</button>
     <p id="status"></p>
@@ -27,14 +27,15 @@
 
       function initMap() {
         map = new google.maps.Map(document.getElementById("map"), {
-          zoom: 15,
-          center: { lat: 13.736717, lng: 100.523186 }, // Default: Bangkok
+          center: { lat: 13.736717, lng: 100.523186 }, // Bangkok default
+          zoom: 14,
         });
       }
 
       function startTracking() {
         const vehicleID = document.getElementById("vehicleID").value.trim();
         const status = document.getElementById("status");
+
         if (!vehicleID) {
           status.textContent = "❗ Please enter a vehicle ID.";
           return;
@@ -45,7 +46,7 @@
           return;
         }
 
-        status.textContent = `📡 Tracking started for ${vehicleID}`;
+        status.textContent = `📡 Tracking started for "${vehicleID}"...`;
 
         // Load first location of the day
         fetch(`https://script.google.com/macros/s/AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA/exec?vehicle=${vehicleID}&first=1`)
@@ -62,14 +63,14 @@
             }
           });
 
-        // Start tracking real-time
+        // Start watching live position
         watchId = navigator.geolocation.watchPosition(
           (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
+            const pos = { lat, lng };
 
             // Update marker
-            const pos = { lat, lng };
             if (!marker) {
               marker = new google.maps.Marker({
                 position: pos,
@@ -83,9 +84,9 @@
             map.setCenter(pos);
 
             // Send to server
-            const url = `https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec?vehicle=${vehicleID}&lat=${lat}&lng=${lng}`;
+            const url = `https://script.google.com/macros/s/AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA/exec?vehicle=${vehicleID}&lat=${lat}&lng=${lng}`;
             fetch(url).then(() => {
-              console.log(`✅ Sent: ${lat}, ${lng}`);
+              console.log(`📍 Sent to server: ${lat}, ${lng}`);
             });
           },
           (error) => {
@@ -100,8 +101,8 @@
       }
     </script>
 
-    <!-- ✅ ใส่ API Key จริงตรง YOUR_API_KEY -->
-    <script async
+    <!-- ✅ เปลี่ยน YOUR_API_KEY เป็น API Key ของ Google Maps -->
+    <script async defer
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBw5pZ4H0EdM_Ru4ffFvdukIurUMtdS2nc&callback=initMap">
     </script>
   </body>
