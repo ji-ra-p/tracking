@@ -1,67 +1,108 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <base target="_top">
-    <title>Vehicle Tracker</title>
+    <title>Vehicle Tracker with Map</title>
     <style>
       body {
         font-family: sans-serif;
-        padding: 20px;
-      }
-      input, button {
         padding: 10px;
-        font-size: 1rem;
+      }
+      #map {
+        height: 400px;
+        width: 100%;
         margin-top: 10px;
       }
     </style>
   </head>
   <body>
     <h2>🚗 Vehicle Tracker</h2>
-    <label for="vehicleID">Enter Vehicle ID:</label><br>
-    <input type="text" id="vehicleID" placeholder="e.g. car123"><br>
+    <label>Enter Vehicle ID:</label>
+    <input type="text" id="vehicleID" placeholder="e.g. car123" />
     <button onclick="startTracking()">Start Tracking</button>
-
     <p id="status"></p>
+    <div id="map"></div>
 
     <script>
-      let watchId = null;
+      let map, marker, watchId;
+
+      function initMap() {
+        map = new google.maps.Map(document.getElementById("map"), {
+          zoom: 15,
+          center: { lat: 13.736717, lng: 100.523186 }, // Default: Bangkok
+        });
+      }
 
       function startTracking() {
         const vehicleID = document.getElementById("vehicleID").value.trim();
         const status = document.getElementById("status");
-
         if (!vehicleID) {
           status.textContent = "❗ Please enter a vehicle ID.";
           return;
         }
 
         if (!navigator.geolocation) {
-          status.textContent = "❌ Geolocation is not supported by this browser.";
+          status.textContent = "❌ Geolocation not supported.";
           return;
         }
 
-        status.textContent = "📡 Tracking started for vehicle: " + vehicleID;
+        status.textContent = `📡 Tracking started for ${vehicleID}`;
 
+        // Load first location of the day
+        fetch(`https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec?vehicle=${vehicleID}&first=1`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data && data.lat && data.lng) {
+              const startPos = { lat: parseFloat(data.lat), lng: parseFloat(data.lng) };
+              new google.maps.Marker({
+                position: startPos,
+                map: map,
+                label: "Start",
+              });
+              map.setCenter(startPos);
+            }
+          });
+
+        // Start tracking real-time
         watchId = navigator.geolocation.watchPosition(
-          position => {
+          (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
 
-            const url = `https://script.google.com/macros/s/AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA/exec?vehicle=${vehicleID}&lat=${lat}&lng=${lng}`;
+            // Update marker
+            const pos = { lat, lng };
+            if (!marker) {
+              marker = new google.maps.Marker({
+                position: pos,
+                map: map,
+                title: "You",
+              });
+            } else {
+              marker.setPosition(pos);
+            }
+
+            map.setCenter(pos);
+
+            // Send to server
+            const url = `https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec?vehicle=${vehicleID}&lat=${lat}&lng=${lng}`;
             fetch(url).then(() => {
-              console.log(`✅ Sent location for ${vehicleID}: ${lat}, ${lng}`);
+              console.log(`✅ Sent: ${lat}, ${lng}`);
             });
           },
-          error => {
-            status.textContent = "❌ Error getting location: " + error.message;
+          (error) => {
+            status.textContent = "❌ Error: " + error.message;
           },
           {
             enableHighAccuracy: true,
             maximumAge: 10000,
-            timeout: 5000
+            timeout: 5000,
           }
         );
       }
+    </script>
+
+    <!-- ✅ ใส่ API Key จริงตรง YOUR_API_KEY -->
+    <script async
+      src="https://maps.googleapis.com/maps/api/js?key=AKfycbyA79qRoYTLZi_2BmpgEf0oaHPssh9xvmoZLXk6tObRf-iCdE_9a1HWpsPtQXw104ZA&callback=initMap">
     </script>
   </body>
 </html>
